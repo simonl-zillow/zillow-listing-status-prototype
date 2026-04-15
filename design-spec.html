@@ -69,7 +69,7 @@
 
   /* ── Hero ── */
   .hero {
-    padding: 56px 0 40px;
+    padding: 32px 0 24px;
     text-align: center;
     max-width: 720px;
     margin: 0 auto;
@@ -116,7 +116,7 @@
 
   /* ── Section ── */
   .section {
-    margin-top: 56px;
+    margin-top: 32px;
   }
   .section-label {
     font-size: 11px;
@@ -183,6 +183,55 @@
   .icon-solution { background: #DCFCE7; color: #16A34A; }
   .icon-goal { background: var(--blue-light); color: var(--blue); }
   .icon-scope { background: var(--purple-bg); color: var(--purple-text); }
+
+  /* ── Collapsible context ── */
+  .context-collapse {
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: 12px;
+    margin-bottom: 32px;
+  }
+  .context-collapse summary {
+    padding: 16px 20px;
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .context-collapse summary::-webkit-details-marker { display: none; }
+  .context-collapse summary::marker { display: none; content: ''; }
+  .context-summary-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--blue);
+    flex-shrink: 0;
+  }
+  .context-summary-text {
+    font-size: 13px;
+    color: var(--gray-500);
+    flex: 1;
+    min-width: 200px;
+    line-height: 1.5;
+  }
+  .context-toggle-hint {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--blue);
+    flex-shrink: 0;
+    margin-left: auto;
+  }
+  .context-collapse[open] .context-toggle-hint { display: none; }
+  .context-collapse[open] summary {
+    border-bottom: 1px solid var(--gray-200);
+    margin-bottom: 0;
+  }
+  .context-collapse .context-grid {
+    padding: 20px;
+  }
 
   /* ── Flow row (3 phones) ── */
   .flow-row {
@@ -648,27 +697,28 @@
     </div>
   </div>
 
-  <!-- Context -->
-  <div class="section">
-    <div class="section-label">Context</div>
-    <div class="section-title">Why we're doing this</div>
-    <div class="section-desc">The current filter architecture treats listing statuses as listing types, making it impossible to isolate pre-market inventory.</div>
-
+  <!-- Context (collapsible) -->
+  <details class="context-collapse">
+    <summary>
+      <span class="context-summary-label">Context</span>
+      <span class="context-summary-text">Users can't isolate pre-market inventory because the current filter treats statuses as listing types. This consolidates Active, Coming Soon, and Zillow Preview into a single status pill.</span>
+      <span class="context-toggle-hint">Show details</span>
+    </summary>
     <div class="context-grid">
       <div class="context-card">
         <h3><span class="icon icon-problem">!</span> The Problem</h3>
-        <p>There is no way to toggle "Active" OFF. When a user checks Coming Soon or Zillow Preview, 19,000+ active listings still flood the results. The filter doesn't do what it says.</p>
+        <p>There is no way to toggle "Active" OFF. When a user checks Coming Soon or Zillow Preview, 19,000+ active listings still flood the results.</p>
       </div>
       <div class="context-card">
         <h3><span class="icon icon-solution">&#10003;</span> The Solution</h3>
-        <p>Introduce an explicit Active status checkbox. Consolidate Active, Coming Soon, and Zillow Preview into a "Listing status" pill on the SRP bar &mdash; enabling true status-based isolation.</p>
+        <p>Introduce an explicit Active status checkbox. Consolidate all three into a "Listing status" pill on the SRP bar, enabling true status-based isolation.</p>
       </div>
       <div class="context-card">
         <h3><span class="icon icon-goal">&#9679;</span> Success Metrics</h3>
         <ul>
           <li>% of users who uncheck Active after finding the new filter</li>
           <li>Click-through rate on Preview listings with Active OFF vs. ON</li>
-          <li>Engagement lift: saves, shares, contact-agent actions on Preview listings</li>
+          <li>Engagement lift on Preview listings</li>
         </ul>
       </div>
       <div class="context-card">
@@ -681,9 +731,7 @@
         </ul>
       </div>
     </div>
-  </div>
-
-  <div class="divider"></div>
+  </details>
 
   <!-- ═══════════════ OPTION A ═══════════════ -->
   <div class="section">
