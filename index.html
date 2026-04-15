@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zillow Preview Listing Filters: Iteration 2</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --zillow-blue: #1A73E8;
+    --zillow-blue-light: #E8F0FE;
+    --pill-border: #D1D5DB;
+    --bg-page: #F3F4F6;
+    --bg-white: #FFFFFF;
+    --text-primary: #111827;
+    --text-secondary: #6B7280;
+    --text-tertiary: #9CA3AF;
+    --badge-active-bg: #DBEAFE;
+    --badge-active-text: #1E40AF;
+    --badge-coming-bg: #FEF3C7;
+    --badge-coming-text: #92400E;
+    --badge-preview-bg: #EDE9FE;
+    --badge-preview-text: #5B21B6;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1);
+    --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);
+    --phone-w: 375px;
+    --phone-h: 812px;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: var(--bg-page);
+    color: var(--text-primary);
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 32px 16px 64px;
+  }
+
+  /* ── Page header ── */
+  .page-header {
+    text-align: center;
+    max-width: 600px;
+    margin-bottom: 28px;
+  }
+  .page-header h1 {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+    letter-spacing: -0.3px;
+  }
+  .page-header p {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  /* ── Controls outside frame ── */
+  .controls-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 20px;
+    max-width: 600px;
+  }
+
+  .option-toggle {
+    display: flex;
+    background: var(--bg-white);
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid #E5E7EB;
+    box-shadow: var(--shadow-sm);
+  }
+  .option-toggle button {
+    padding: 8px 18px;
+    font-size: 13px;
+    font-weight: 600;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .option-toggle button.active {
+    background: var(--zillow-blue);
+    color: #fff;
+  }
+
+  .stepper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-white);
+    border-radius: 10px;
+    padding: 6px 10px;
+    border: 1px solid #E5E7EB;
+    box-shadow: var(--shadow-sm);
+  }
+  .stepper button {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid #E5E7EB;
+    background: var(--bg-white);
+    cursor: pointer;
+    font-size: 16px;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+  }
+  .stepper button:hover { background: #F9FAFB; }
+  .stepper button:disabled { opacity: 0.35; cursor: default; }
+  .stepper .state-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    min-width: 80px;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .state-description {
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+    max-width: 500px;
+    min-height: 18px;
+  }
+
+  /* ── Phone frame ── */
+  .phone-frame {
+    width: var(--phone-w);
+    height: var(--phone-h);
+    border-radius: 40px;
+    border: 8px solid #1F2937;
+    background: var(--bg-white);
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25), 0 0 0 1px rgba(0,0,0,0.05);
+    flex-shrink: 0;
+  }
+
+  .phone-inner {
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    position: relative;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* ── Status bar ── */
+  .status-bar {
+    height: 44px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 0 24px 4px;
+    font-size: 15px;
+    font-weight: 600;
+    background: var(--bg-white);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .status-bar .time { font-weight: 700; font-size: 15px; }
+  .status-bar .icons { display: flex; gap: 5px; align-items: center; }
+  .status-bar .icons svg { width: 16px; height: 12px; }
+
+  /* ── Search bar ── */
+  .search-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 16px 8px;
+    background: var(--bg-white);
+    position: sticky;
+    top: 44px;
+    z-index: 10;
+  }
+  .search-input {
+    flex: 1;
+    height: 40px;
+    border-radius: 8px;
+    border: 1px solid #E5E7EB;
+    padding: 0 12px 0 36px;
+    font-size: 15px;
+    color: var(--text-primary);
+    background: #F9FAFB;
+    position: relative;
+    display: flex;
+    align-items: center;
+    box-shadow: var(--shadow-sm);
+  }
+  .search-input .search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-tertiary);
+  }
+  .search-input input {
+    border: none;
+    background: transparent;
+    font-size: 15px;
+    color: var(--text-primary);
+    width: 100%;
+    outline: none;
+    padding-left: 24px;
+  }
+  .filter-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--zillow-blue);
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    box-shadow: var(--shadow-sm);
+  }
+  .filter-btn svg { width: 18px; height: 18px; color: #fff; }
+
+  /* ── Pill bar ── */
+  .pill-bar {
+    display: flex;
+    gap: 8px;
+    padding: 8px 16px 10px;
+    overflow-x: auto;
+    background: var(--bg-white);
+    position: sticky;
+    top: 92px;
+    z-index: 9;
+    border-bottom: 1px solid #F3F4F6;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .pill-bar::-webkit-scrollbar { display: none; }
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 7px 14px;
+    border-radius: 20px;
+    border: 1px solid var(--pill-border);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+    cursor: pointer;
+    background: var(--bg-white);
+    transition: all 0.2s;
+    flex-shrink: 0;
+    user-select: none;
+  }
+  .pill:hover { border-color: #9CA3AF; }
+  .pill svg { width: 12px; height: 12px; flex-shrink: 0; }
+  .pill .chevron { color: var(--text-tertiary); }
+
+  .pill.active-pill {
+    background: var(--zillow-blue);
+    color: #fff;
+    border-color: var(--zillow-blue);
+  }
+  .pill.active-pill .chevron { color: rgba(255,255,255,0.7); }
+  .pill.active-pill .pill-x {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 2px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .pill.active-pill .pill-x:hover { background: rgba(255,255,255,0.4); }
+  .pill.active-pill .pill-x svg { width: 10px; height: 10px; color: #fff; }
+
+  #listingStatusPill {
+    display: none;
+  }
+  #listingStatusPill.visible {
+    display: inline-flex;
+  }
+
+  /* ── Map placeholder ── */
+  .map-placeholder {
+    width: 100%;
+    height: 120px;
+    background: linear-gradient(135deg, #E8F0FE 0%, #DBEAFE 50%, #C7D8F0 100%);
+    position: relative;
+    overflow: hidden;
+  }
+  .map-placeholder::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(circle at 20% 40%, var(--zillow-blue) 2px, transparent 2px),
+      radial-gradient(circle at 45% 25%, var(--zillow-blue) 2px, transparent 2px),
+      radial-gradient(circle at 70% 55%, var(--zillow-blue) 2px, transparent 2px),
+      radial-gradient(circle at 30% 70%, var(--zillow-blue) 2px, transparent 2px),
+      radial-gradient(circle at 80% 30%, var(--zillow-blue) 2px, transparent 2px),
+      radial-gradient(circle at 55% 65%, var(--zillow-blue) 2px, transparent 2px),
+      radial-gradient(circle at 15% 80%, var(--zillow-blue) 2px, transparent 2px);
+    opacity: 0.4;
+  }
+  .map-placeholder .map-label {
+    position: absolute;
+    bottom: 8px;
+    right: 12px;
+    font-size: 11px;
+    color: var(--text-tertiary);
+    background: rgba(255,255,255,0.8);
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+
+  /* ── Results line ── */
+  .results-line {
+    padding: 12px 16px 4px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  /* ── Listing cards ── */
+  .listing-card {
+    padding: 12px 16px;
+    border-bottom: 1px solid #F3F4F6;
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+  .listing-card:hover { background: #FAFAFA; }
+
+  .card-image {
+    width: 100%;
+    height: 160px;
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+    margin-bottom: 8px;
+  }
+  .card-image .img-placeholder {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .card-image .heart-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.85);
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  }
+  .card-image .heart-btn svg { width: 16px; height: 16px; color: #6B7280; }
+  .card-image .status-badge-overlay {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+  .status-badge-overlay.coming-soon {
+    background: var(--badge-coming-bg);
+    color: var(--badge-coming-text);
+  }
+  .status-badge-overlay.preview {
+    background: var(--badge-preview-bg);
+    color: var(--badge-preview-text);
+  }
+  .status-badge-overlay.active-badge {
+    background: var(--badge-active-bg);
+    color: var(--badge-active-text);
+  }
+
+  .card-price {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+  }
+  .card-meta {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 1px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+  .card-meta .sep { color: #D1D5DB; }
+  .card-meta .inline-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .inline-badge.active-il { background: var(--badge-active-bg); color: var(--badge-active-text); }
+  .inline-badge.coming-il { background: var(--badge-coming-bg); color: var(--badge-coming-text); }
+  .inline-badge.preview-il { background: var(--badge-preview-bg); color: var(--badge-preview-text); }
+
+  .card-address {
+    font-size: 12px;
+    color: var(--text-tertiary);
+  }
+
+  /* ── Bottom sheet ── */
+  .overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 50;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s;
+  }
+  .overlay.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .bottom-sheet {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--bg-white);
+    border-radius: 16px 16px 0 0;
+    z-index: 51;
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+    padding-bottom: 34px;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+  }
+  .bottom-sheet.open {
+    transform: translateY(0);
+  }
+
+  .sheet-handle {
+    width: 36px;
+    height: 5px;
+    border-radius: 3px;
+    background: #D1D5DB;
+    margin: 10px auto 0;
+  }
+
+  .sheet-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px 10px;
+  }
+  .sheet-header h3 {
+    font-size: 17px;
+    font-weight: 700;
+  }
+  .sheet-header .done-btn {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--zillow-blue);
+    border: none;
+    background: none;
+    cursor: pointer;
+    padding: 4px 2px;
+  }
+  .sheet-header .done-btn:hover { text-decoration: underline; }
+
+  .sheet-body {
+    padding: 0 20px;
+  }
+
+  .checkbox-row {
+    display: flex;
+    align-items: center;
+    padding: 14px 0;
+    border-bottom: 1px solid #F3F4F6;
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .checkbox-row:last-child { border-bottom: none; }
+
+  .checkbox-box {
+    width: 22px;
+    height: 22px;
+    border-radius: 4px;
+    border: 2px solid #D1D5DB;
+    margin-right: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.15s;
+  }
+  .checkbox-row.checked .checkbox-box {
+    background: var(--zillow-blue);
+    border-color: var(--zillow-blue);
+  }
+  .checkbox-box svg { width: 14px; height: 14px; color: #fff; opacity: 0; transition: opacity 0.1s; }
+  .checkbox-row.checked .checkbox-box svg { opacity: 1; }
+
+  .checkbox-label {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+  .checkbox-label .yard-sign {
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .checkbox-label .yard-sign svg { width: 16px; height: 16px; color: var(--badge-preview-text); }
+
+  .checkbox-label .new-badge {
+    font-size: 10px;
+    font-weight: 700;
+    color: #DC2626;
+    background: #FEE2E2;
+    padding: 1px 5px;
+    border-radius: 3px;
+    letter-spacing: 0.04em;
+  }
+
+  .checkbox-label .info-icon {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 1.5px solid #D1D5DB;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: auto;
+    flex-shrink: 0;
+    color: var(--text-tertiary);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  /* ── Transition helpers ── */
+  .fade-content {
+    transition: opacity 0.15s;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 500px) {
+    body { padding: 16px 8px 48px; }
+    .phone-frame {
+      border-radius: 0;
+      border: none;
+      width: 100%;
+      max-width: var(--phone-w);
+      box-shadow: var(--shadow-lg);
+    }
+    .controls-bar { gap: 8px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>Zillow Preview Listing Filters: Iteration 2</h1>
+  <p>Listing status pill consolidation for iOS, Android, and Voyager.<br>Tap through states or interact directly with the prototype.</p>
+</div>
+
+<div class="controls-bar">
+  <div class="option-toggle">
+    <button id="optABtn" class="active" onclick="setOption('A')">Option A: Count</button>
+    <button id="optBBtn" onclick="setOption('B')">Option B: Named</button>
+  </div>
+  <div class="stepper">
+    <button id="prevBtn" onclick="stepState(-1)" aria-label="Previous state">
+      <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+    </button>
+    <span class="state-label" id="stateLabel">State 1 / 3</span>
+    <button id="nextBtn" onclick="stepState(1)" aria-label="Next state">
+      <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>
+    </button>
+  </div>
+</div>
+<div class="state-description" id="stateDesc"><strong>State 1: Default</strong> &mdash; Default state &mdash; all statuses ON, no listing status pill shown</div>
+
+<!-- Phone Frame -->
+<div class="phone-frame">
+  <div class="phone-inner" id="phoneInner">
+
+    <!-- iOS Status Bar -->
+    <div class="status-bar">
+      <span class="time">9:41</span>
+      <div class="icons">
+        <svg viewBox="0 0 17 12"><path d="M1 7.5c0-.28.22-.5.5-.5h1c.28 0 .5.22.5.5v4c0 .28-.22.5-.5.5h-1a.5.5 0 01-.5-.5v-4zm4-2c0-.28.22-.5.5-.5h1c.28 0 .5.22.5.5v6c0 .28-.22.5-.5.5h-1a.5.5 0 01-.5-.5v-6zm4-2c0-.28.22-.5.5-.5h1c.28 0 .5.22.5.5v8c0 .28-.22.5-.5.5h-1a.5.5 0 01-.5-.5v-8zm4-2c0-.28.22-.5.5-.5h1c.28 0 .5.22.5.5v10c0 .28-.22.5-.5.5h-1a.5.5 0 01-.5-.5v-10z" fill="currentColor"/></svg>
+        <svg viewBox="0 0 15 12"><path d="M7.5 2.8c1.7 0 3.3.7 4.5 1.8l1.1-1.1C11.6 2 9.6 1.2 7.5 1.2S3.4 2 1.9 3.5L3 4.6c1.2-1.1 2.8-1.8 4.5-1.8zm0 3c1 0 2 .4 2.7 1.1L11.3 6c-1-.9-2.4-1.4-3.8-1.4S5.2 5.1 4.2 6L5.3 7c.7-.7 1.7-1.1 2.7-1.1h-.5zm0 3c.5 0 1 .2 1.4.6l-1.4 1.4-1.4-1.4c.4-.4.9-.6 1.4-.6z" fill="currentColor"/></svg>
+        <svg viewBox="0 0 25 12"><rect x="0" y="1" width="21" height="10" rx="2" stroke="currentColor" stroke-width="1" fill="none"/><rect x="22" y="4" width="2" height="4" rx="1" fill="currentColor" opacity="0.4"/><rect x="1.5" y="2.5" width="16" height="7" rx="1" fill="currentColor"/></svg>
+      </div>
+    </div>
+
+    <!-- Search Bar -->
+    <div class="search-bar">
+      <div class="search-input">
+        <svg class="search-icon" width="16" height="16" viewBox="0 0 20 20" fill="currentColor" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#9CA3AF"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/></svg>
+        <input type="text" value="Miami Beach, FL" readonly>
+      </div>
+      <button class="filter-btn" aria-label="Filters">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z" clip-rule="evenodd"/></svg>
+      </button>
+    </div>
+
+    <!-- Pill Bar -->
+    <div class="pill-bar" id="pillBar">
+      <!-- Listing Status pill (dynamic) -->
+      <div class="pill active-pill" id="listingStatusPill" onclick="openSheet()">
+        <span id="pillLabel">Listing status (2)</span>
+        <span class="pill-x" id="pillX" onclick="event.stopPropagation(); resetFilters();">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+        </span>
+      </div>
+
+      <div class="pill" id="pillSort">
+        Sort
+        <svg class="chevron" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+      </div>
+      <div class="pill">
+        Bathrooms
+        <svg class="chevron" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+      </div>
+      <div class="pill">Save Search</div>
+      <div class="pill">
+        Price
+        <svg class="chevron" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+      </div>
+      <div class="pill">
+        Beds
+        <svg class="chevron" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+      </div>
+    </div>
+
+    <!-- Map Placeholder -->
+    <div class="map-placeholder">
+      <span class="map-label">Map</span>
+    </div>
+
+    <!-- Results -->
+    <div class="results-line" id="resultsLine">19,906 homes for sale</div>
+
+    <!-- Listing Cards -->
+    <div id="listingsContainer"></div>
+
+  </div>
+
+  <!-- Bottom Sheet Overlay -->
+  <div class="overlay" id="overlay" onclick="closeSheet()"></div>
+
+  <!-- Bottom Sheet -->
+  <div class="bottom-sheet" id="bottomSheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <h3>Listing status</h3>
+      <button class="done-btn" onclick="closeSheet()">Done</button>
+    </div>
+    <div class="sheet-body">
+      <div class="checkbox-row" id="cbActive" onclick="toggleCheck('active')">
+        <div class="checkbox-box">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+        </div>
+        <div class="checkbox-label">
+          Active
+          <span class="info-icon">?</span>
+        </div>
+      </div>
+
+      <div class="checkbox-row" id="cbComingSoon" onclick="toggleCheck('comingSoon')">
+        <div class="checkbox-box">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+        </div>
+        <div class="checkbox-label">
+          Coming Soon
+          <span class="info-icon">?</span>
+        </div>
+      </div>
+
+      <div class="checkbox-row" id="cbPreview" onclick="toggleCheck('preview')">
+        <div class="checkbox-box">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+        </div>
+        <div class="checkbox-label">
+          <span class="yard-sign">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h4l1-9h8l1 9h4"/><path d="M5 12V6a2 2 0 012-2h10a2 2 0 012 2v6"/><line x1="12" y1="4" x2="12" y2="3"/></svg>
+          </span>
+          Zillow Preview
+          <span class="new-badge">NEW</span>
+          <span class="info-icon">?</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── State ──
+let currentOption = 'A';
+let currentStateIdx = 0;
+let filters = { active: true, comingSoon: true, preview: true };
+
+const STATES = [
+  {
+    name: 'Default',
+    desc: 'Default state — all statuses ON, no listing status pill shown',
+    filters: { active: true, comingSoon: true, preview: true },
+    results: '19,906',
+    resultsLabel: 'homes for sale'
+  },
+  {
+    name: 'Pre-market mode',
+    desc: 'Active unchecked — only Coming Soon + Zillow Preview results',
+    filters: { active: false, comingSoon: true, preview: true },
+    results: '23',
+    resultsLabel: 'homes for sale'
+  },
+  {
+    name: 'Preview only',
+    desc: 'Only Zillow Preview checked — isolated preview inventory',
+    filters: { active: false, comingSoon: false, preview: true },
+    results: '8',
+    resultsLabel: 'homes for sale'
+  }
+];
+
+const LISTINGS_DATA = {
+  default: [
+    { price: '$1,250,000', beds: 3, baths: 2, sqft: '1,847', status: 'active', address: '1455 Ocean Dr, Miami Beach, FL 33139', img: 'active1' },
+    { price: '$2,395,000', beds: 4, baths: 3, sqft: '2,376', status: 'active', address: '820 Collins Ave #401, Miami Beach, FL 33140', img: 'active2' },
+    { price: '$875,000', beds: 2, baths: 2, sqft: '1,204', status: 'active', address: '1500 Bay Rd #1228S, Miami Beach, FL 33139', img: 'active3' },
+    { price: '$3,100,000', beds: 5, baths: 4, sqft: '3,150', status: 'active', address: '4525 N Meridian Ave, Miami Beach, FL 33140', img: 'active4' }
+  ],
+  premarket: [
+    { price: '$1,875,000', beds: 4, baths: 3, sqft: '2,640', status: 'comingSoon', address: '901 Meridian Ave, Miami Beach, FL 33139', img: 'cs1' },
+    { price: '$2,100,000', beds: 3, baths: 3, sqft: '2,100', status: 'preview', address: '1245 Lincoln Rd, Miami Beach, FL 33139', img: 'pv1' },
+    { price: '$945,000', beds: 2, baths: 2, sqft: '1,380', status: 'comingSoon', address: '700 Euclid Ave #204, Miami Beach, FL 33139', img: 'cs2' },
+    { price: '$3,450,000', beds: 5, baths: 4, sqft: '3,200', status: 'preview', address: '4200 Pine Tree Dr, Miami Beach, FL 33140', img: 'pv2' }
+  ],
+  previewOnly: [
+    { price: '$2,100,000', beds: 3, baths: 3, sqft: '2,100', status: 'preview', address: '1245 Lincoln Rd, Miami Beach, FL 33139', img: 'pv1' },
+    { price: '$3,450,000', beds: 5, baths: 4, sqft: '3,200', status: 'preview', address: '4200 Pine Tree Dr, Miami Beach, FL 33140', img: 'pv2' },
+    { price: '$1,625,000', beds: 3, baths: 2, sqft: '1,920', status: 'preview', address: '530 W Ave, Miami Beach, FL 33139', img: 'pv3' }
+  ]
+};
+
+// Color schemes for card images per status
+const IMG_COLORS = {
+  active1: ['#3B82F6','#2563EB'], active2: ['#6366F1','#4F46E5'],
+  active3: ['#0EA5E9','#0284C7'], active4: ['#8B5CF6','#7C3AED'],
+  cs1: ['#F59E0B','#D97706'], cs2: ['#FBBF24','#F59E0B'],
+  pv1: ['#8B5CF6','#6D28D9'], pv2: ['#A78BFA','#7C3AED'],
+  pv3: ['#7C3AED','#5B21B6']
+};
+
+function generateCardImageSVG(imgKey, status) {
+  const colors = IMG_COLORS[imgKey] || ['#94A3B8','#64748B'];
+  const houseColor = status === 'preview' ? '#DDD6FE' : status === 'comingSoon' ? '#FDE68A' : '#BFDBFE';
+  const roofColor = colors[1];
+  return `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="343" height="160" viewBox="0 0 343 160">
+    <defs>
+      <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" style="stop-color:${colors[0]};stop-opacity:0.15"/>
+        <stop offset="100%" style="stop-color:${colors[1]};stop-opacity:0.25"/>
+      </linearGradient>
+    </defs>
+    <rect width="343" height="160" fill="url(#bg)"/>
+    <rect x="60" y="85" width="80" height="55" rx="2" fill="${houseColor}" opacity="0.7"/>
+    <polygon points="60,85 100,55 140,85" fill="${roofColor}" opacity="0.6"/>
+    <rect x="90" y="110" width="20" height="30" rx="1" fill="${roofColor}" opacity="0.4"/>
+    <rect x="200" y="75" width="90" height="65" rx="2" fill="${houseColor}" opacity="0.5"/>
+    <polygon points="200,75 245,45 290,75" fill="${roofColor}" opacity="0.45"/>
+    <rect x="235" y="105" width="20" height="35" rx="1" fill="${roofColor}" opacity="0.3"/>
+    <circle cx="300" cy="30" r="18" fill="${colors[0]}" opacity="0.12"/>
+    <rect x="20" y="140" width="303" height="20" rx="2" fill="${colors[1]}" opacity="0.06"/>
+  </svg>`)}`;
+}
+
+function statusLabel(status) {
+  if (status === 'active') return 'Active';
+  if (status === 'comingSoon') return 'Coming Soon';
+  if (status === 'preview') return 'Zillow Preview';
+  return '';
+}
+function statusBadgeClass(status) {
+  if (status === 'active') return 'active-badge';
+  if (status === 'comingSoon') return 'coming-soon';
+  if (status === 'preview') return 'preview';
+  return '';
+}
+function inlineBadgeClass(status) {
+  if (status === 'active') return 'active-il';
+  if (status === 'comingSoon') return 'coming-il';
+  if (status === 'preview') return 'preview-il';
+  return '';
+}
+
+function renderListings(listings) {
+  const container = document.getElementById('listingsContainer');
+  container.innerHTML = listings.map(l => `
+    <div class="listing-card">
+      <div class="card-image">
+        <img class="img-placeholder" src="${generateCardImageSVG(l.img, l.status)}" alt="Property">
+        <button class="heart-btn" aria-label="Save">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"/></svg>
+        </button>
+        ${l.status !== 'active' ? `<span class="status-badge-overlay ${statusBadgeClass(l.status)}">${statusLabel(l.status)}</span>` : ''}
+      </div>
+      <div class="card-price">${l.price}</div>
+      <div class="card-meta">
+        ${l.beds} bd <span class="sep">|</span> ${l.baths} ba <span class="sep">|</span> ${l.sqft} sqft
+        <span class="sep">&middot;</span>
+        <span class="inline-badge ${inlineBadgeClass(l.status)}">${statusLabel(l.status)}</span>
+      </div>
+      <div class="card-address">${l.address}</div>
+    </div>
+  `).join('');
+}
+
+function getListingsForState() {
+  const { active, comingSoon, preview } = filters;
+  if (active && comingSoon && preview) return LISTINGS_DATA.default;
+  if (!active && comingSoon && preview) return LISTINGS_DATA.premarket;
+  if (!active && !comingSoon && preview) return LISTINGS_DATA.previewOnly;
+  // Custom filter combos
+  let pool = [...LISTINGS_DATA.default, ...LISTINGS_DATA.premarket, ...LISTINGS_DATA.previewOnly];
+  // Dedupe by address
+  const seen = new Set();
+  pool = pool.filter(l => { if (seen.has(l.address)) return false; seen.add(l.address); return true; });
+  return pool.filter(l => {
+    if (l.status === 'active' && active) return true;
+    if (l.status === 'comingSoon' && comingSoon) return true;
+    if (l.status === 'preview' && preview) return true;
+    return false;
+  });
+}
+
+function getResultCount() {
+  const { active, comingSoon, preview } = filters;
+  if (active && comingSoon && preview) return '19,906';
+  if (!active && comingSoon && preview) return '23';
+  if (!active && !comingSoon && preview) return '8';
+  if (active && !comingSoon && !preview) return '19,883';
+  if (active && comingSoon && !preview) return '19,898';
+  if (active && !comingSoon && preview) return '19,891';
+  if (!active && comingSoon && !preview) return '15';
+  return '0';
+}
+
+function isDefault() {
+  return filters.active && filters.comingSoon && filters.preview;
+}
+
+function getPillLabel() {
+  if (isDefault()) return '';
+  const checked = [];
+  if (filters.active) checked.push('Active');
+  if (filters.comingSoon) checked.push('Coming Soon');
+  if (filters.preview) checked.push('Zillow Preview');
+  const count = checked.length;
+
+  if (count === 0) return currentOption === 'A' ? 'Listing status (0)' : 'None selected';
+
+  if (currentOption === 'A') {
+    return `Listing status (${count})`;
+  } else {
+    // Option B: named, fallback to count if too long
+    const shortNames = [];
+    if (filters.active) shortNames.push('Active');
+    if (filters.comingSoon) shortNames.push('Coming Soon');
+    if (filters.preview) shortNames.push('Preview');
+    const named = shortNames.join(', ');
+    // Measure approximate width: ~7px per char at 13px font
+    if (named.length * 7 > 200) {
+      return `Listing status (${count})`;
+    }
+    return named;
+  }
+}
+
+function updateUI() {
+  // Pill visibility
+  const pill = document.getElementById('listingStatusPill');
+  const pillLabel = document.getElementById('pillLabel');
+  if (isDefault()) {
+    pill.classList.remove('visible');
+  } else {
+    pill.classList.add('visible');
+    pillLabel.textContent = getPillLabel();
+  }
+
+  // Checkboxes
+  document.getElementById('cbActive').classList.toggle('checked', filters.active);
+  document.getElementById('cbComingSoon').classList.toggle('checked', filters.comingSoon);
+  document.getElementById('cbPreview').classList.toggle('checked', filters.preview);
+
+  // Results
+  const count = getResultCount();
+  document.getElementById('resultsLine').textContent = `${count} homes for sale`;
+
+  // Listings
+  renderListings(getListingsForState());
+
+  // Stepper UI
+  document.getElementById('stateLabel').textContent = `${currentStateIdx + 1} / ${STATES.length}`;
+  document.getElementById('stateDesc').innerHTML = `<strong>State ${currentStateIdx + 1}: ${STATES[currentStateIdx].name}</strong> &mdash; ${STATES[currentStateIdx].desc}`;
+  document.getElementById('prevBtn').disabled = currentStateIdx === 0;
+  document.getElementById('nextBtn').disabled = currentStateIdx === STATES.length - 1;
+
+  // Option buttons
+  document.getElementById('optABtn').classList.toggle('active', currentOption === 'A');
+  document.getElementById('optBBtn').classList.toggle('active', currentOption === 'B');
+}
+
+function setOption(opt) {
+  currentOption = opt;
+  updateUI();
+}
+
+function stepState(dir) {
+  const next = currentStateIdx + dir;
+  if (next < 0 || next >= STATES.length) return;
+  currentStateIdx = next;
+  const state = STATES[currentStateIdx];
+  filters = { ...state.filters };
+  closeSheet();
+  updateUI();
+}
+
+function applyState(idx) {
+  currentStateIdx = idx;
+  const state = STATES[idx];
+  filters = { ...state.filters };
+  updateUI();
+}
+
+function toggleCheck(key) {
+  filters[key] = !filters[key];
+  // Prevent unchecking all — at least one must remain
+  if (!filters.active && !filters.comingSoon && !filters.preview) {
+    filters[key] = true;
+    return;
+  }
+  // Sync stateIdx to match if filters match a known state
+  syncStateIdx();
+  updateUI();
+}
+
+function syncStateIdx() {
+  for (let i = 0; i < STATES.length; i++) {
+    const sf = STATES[i].filters;
+    if (sf.active === filters.active && sf.comingSoon === filters.comingSoon && sf.preview === filters.preview) {
+      currentStateIdx = i;
+      return;
+    }
+  }
+  // If no match, keep current but update label
+}
+
+function resetFilters() {
+  filters = { active: true, comingSoon: true, preview: true };
+  currentStateIdx = 0;
+  updateUI();
+}
+
+function openSheet() {
+  document.getElementById('overlay').classList.add('open');
+  document.getElementById('bottomSheet').classList.add('open');
+}
+
+function closeSheet() {
+  document.getElementById('overlay').classList.remove('open');
+  document.getElementById('bottomSheet').classList.remove('open');
+}
+
+// ── Keyboard nav ──
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'ArrowLeft') stepState(-1);
+  if (e.key === 'ArrowRight') stepState(1);
+});
+
+// ── Init ──
+applyState(0);
+updateUI();
+</script>
+
+</body>
+</html>
